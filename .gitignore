@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+*.pdf
+*.png
+diagnostico_osde.py
