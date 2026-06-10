@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import gspread
 from pathlib import Path
 from datetime import datetime
 
@@ -24,7 +25,7 @@ FIXED_FACTORS_CO = {
 
 CONECTIVIDAD_CO_POR_EMPLEADO = 200_000
 
-DATA_FILE = Path(__file__).parent / 'data_costo_empresa.xlsx'
+SPREADSHEET_ID = '1s0zzBQEfsBVR0D5jgVhDWedyyvpmrb2krYsrFz0Ht_c'
 SHEET_AR = 'argentina'
 SHEET_CO = 'colombia'
 
@@ -44,26 +45,42 @@ COLUMNS_CO = [
 ]
 
 
-# ─── Data loading ──────────────────────────────────────────────────────────────
+# ─── Google Sheets ─────────────────────────────────────────────────────────────
 
-def _read_all_sheets() -> dict:
-    if not DATA_FILE.exists():
-        return {}
+def _get_gc():
+    from google.oauth2.service_account import Credentials
+    scopes = ['https://www.googleapis.com/auth/spreadsheets']
     try:
-        xl = pd.ExcelFile(DATA_FILE)
-        return {s: pd.read_excel(DATA_FILE, sheet_name=s) for s in xl.sheet_names}
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     except Exception:
-        return {}
+        creds_file = Path(__file__).parent.parent / 'talentserviceproject-1ce2ed91696b.json'
+        creds = Credentials.from_service_account_file(str(creds_file), scopes=scopes)
+    return gspread.authorize(creds)
 
 
+@st.cache_data(ttl=60)
 def load_data_ar() -> pd.DataFrame:
-    sheets = _read_all_sheets()
-    return sheets.get(SHEET_AR, pd.DataFrame(columns=COLUMNS_AR))
+    gc = _get_gc()
+    sh = gc.open_by_key(SPREADSHEET_ID)
+    try:
+        ws = sh.worksheet(SHEET_AR)
+        records = ws.get_all_records()
+        return pd.DataFrame(records) if records else pd.DataFrame(columns=COLUMNS_AR)
+    except gspread.WorksheetNotFound:
+        return pd.DataFrame(columns=COLUMNS_AR)
 
 
+@st.cache_data(ttl=60)
 def load_data_co() -> pd.DataFrame:
-    sheets = _read_all_sheets()
-    return sheets.get(SHEET_CO, pd.DataFrame(columns=COLUMNS_CO))
+    gc = _get_gc()
+    sh = gc.open_by_key(SPREADSHEET_ID)
+    try:
+        ws = sh.worksheet(SHEET_CO)
+        records = ws.get_all_records()
+        return pd.DataFrame(records) if records else pd.DataFrame(columns=COLUMNS_CO)
+    except gspread.WorksheetNotFound:
+        return pd.DataFrame(columns=COLUMNS_CO)
 
 
 # ─── Factor calculations ───────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import pdfplumber
+import gspread
 import re
 from pathlib import Path
 from datetime import datetime
@@ -26,7 +27,7 @@ FIXED_FACTORS_CO = {
 
 CONECTIVIDAD_CO_POR_EMPLEADO = 200_000  # COP por empleado por mes
 
-DATA_FILE = Path(__file__).parent / 'data_costo_empresa.xlsx'
+SPREADSHEET_ID = '1s0zzBQEfsBVR0D5jgVhDWedyyvpmrb2krYsrFz0Ht_c'
 SHEET_AR = 'argentina'
 SHEET_CO = 'colombia'
 
@@ -46,51 +47,71 @@ COLUMNS_CO = [
 ]
 
 
-# ─── Data persistence ──────────────────────────────────────────────────────────
+# ─── Google Sheets ─────────────────────────────────────────────────────────────
 
-def _read_all_sheets() -> dict:
-    if not DATA_FILE.exists():
-        return {}
+def _get_gc():
+    from google.oauth2.service_account import Credentials
+    scopes = ['https://www.googleapis.com/auth/spreadsheets']
     try:
-        xl = pd.ExcelFile(DATA_FILE)
-        return {s: pd.read_excel(DATA_FILE, sheet_name=s) for s in xl.sheet_names}
+        creds_dict = dict(st.secrets["gcp_service_account"])
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
     except Exception:
-        return {}
+        creds_file = Path(__file__).parent.parent / 'talentserviceproject-1ce2ed91696b.json'
+        creds = Credentials.from_service_account_file(str(creds_file), scopes=scopes)
+    return gspread.authorize(creds)
 
 
-def _write_sheet(sheet: str, df: pd.DataFrame):
-    """Write a sheet preserving all other existing sheets."""
-    sheets = _read_all_sheets()
-    sheets[sheet] = df
-    with pd.ExcelWriter(DATA_FILE, engine='openpyxl') as writer:
-        for s, sdf in sheets.items():
-            sdf.to_excel(writer, sheet_name=s, index=False)
+def _get_or_create_ws(sh, name: str, columns: list):
+    try:
+        return sh.worksheet(name)
+    except gspread.WorksheetNotFound:
+        ws = sh.add_worksheet(title=name, rows=1000, cols=len(columns))
+        ws.update([columns])
+        return ws
 
 
+@st.cache_data(ttl=60)
 def load_data_ar() -> pd.DataFrame:
-    sheets = _read_all_sheets()
-    return sheets.get(SHEET_AR, pd.DataFrame(columns=COLUMNS_AR))
+    gc = _get_gc()
+    sh = gc.open_by_key(SPREADSHEET_ID)
+    ws = _get_or_create_ws(sh, SHEET_AR, COLUMNS_AR)
+    records = ws.get_all_records()
+    return pd.DataFrame(records) if records else pd.DataFrame(columns=COLUMNS_AR)
+
+
+@st.cache_data(ttl=60)
+def load_data_co() -> pd.DataFrame:
+    gc = _get_gc()
+    sh = gc.open_by_key(SPREADSHEET_ID)
+    ws = _get_or_create_ws(sh, SHEET_CO, COLUMNS_CO)
+    records = ws.get_all_records()
+    return pd.DataFrame(records) if records else pd.DataFrame(columns=COLUMNS_CO)
 
 
 def save_period_ar(row: dict):
+    gc = _get_gc()
+    sh = gc.open_by_key(SPREADSHEET_ID)
+    ws = _get_or_create_ws(sh, SHEET_AR, COLUMNS_AR)
     df = load_data_ar()
     df = df[~((df['año'] == row['año']) & (df['mes'] == row['mes']))]
     df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
     df = df.sort_values(['año', 'mes']).reset_index(drop=True)
-    _write_sheet(SHEET_AR, df)
-
-
-def load_data_co() -> pd.DataFrame:
-    sheets = _read_all_sheets()
-    return sheets.get(SHEET_CO, pd.DataFrame(columns=COLUMNS_CO))
+    ws.clear()
+    ws.update([COLUMNS_AR] + df.fillna('').values.tolist())
+    st.cache_data.clear()
 
 
 def save_period_co(row: dict):
+    gc = _get_gc()
+    sh = gc.open_by_key(SPREADSHEET_ID)
+    ws = _get_or_create_ws(sh, SHEET_CO, COLUMNS_CO)
     df = load_data_co()
     df = df[~((df['año'] == row['año']) & (df['mes'] == row['mes']))]
     df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
     df = df.sort_values(['año', 'mes']).reset_index(drop=True)
-    _write_sheet(SHEET_CO, df)
+    ws.clear()
+    ws.update([COLUMNS_CO] + df.fillna('').values.tolist())
+    st.cache_data.clear()
 
 
 # ─── Parsing helpers ───────────────────────────────────────────────────────────
@@ -402,12 +423,35 @@ def render_prepaga_section(label: str, parse_fn, key: str) -> float:
     return subtotal
 
 
+# ─── Password ─────────────────────────────────────────────────────────────────
+
+def _check_password() -> bool:
+    try:
+        correct = st.secrets["app"]["password"]
+    except Exception:
+        return True  # sin secrets configurados → modo local sin contraseña
+    if st.session_state.get("authenticated"):
+        return True
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+        st.markdown("### Factor Costo Empresa")
+        pwd = st.text_input("Contraseña", type="password")
+        if st.button("Entrar", type="primary", use_container_width=True):
+            if pwd == correct:
+                st.session_state.authenticated = True
+                st.rerun()
+            else:
+                st.error("Contraseña incorrecta")
+    return False
 
 
 # ─── App ──────────────────────────────────────────────────────────────────────
 
 st.set_page_config(page_title="Factor Costo Empresa", layout="wide")
 st.title("Factor Costo Empresa")
+
+if not _check_password():
+    st.stop()
 
 tab_ar_carga, tab_ar_factor, tab_co_carga, tab_co_factor = st.tabs([
     "Argentina — Cargar",
@@ -510,14 +554,15 @@ with tab_ar_carga:
         elif salarios_brutos <= 0:
             st.error("Los salarios brutos resultantes son 0 o negativos. Revisá los valores.")
         else:
-            save_period_ar({
-                'año': year, 'mes': month,
-                'rem9_f931': rem9, 'conectividad': conectividad,
-                'salarios_brutos': salarios_brutos,
-                'contrib_ss': contrib_ss, 'contrib_os': contrib_os,
-                'art': art, 'seguro_vida': seguro_vida,
-                'prepaga_total': prepaga_total,
-            })
+            with st.spinner("Guardando..."):
+                save_period_ar({
+                    'año': year, 'mes': month,
+                    'rem9_f931': rem9, 'conectividad': conectividad,
+                    'salarios_brutos': salarios_brutos,
+                    'contrib_ss': contrib_ss, 'contrib_os': contrib_os,
+                    'art': art, 'seguro_vida': seguro_vida,
+                    'prepaga_total': prepaga_total,
+                })
             st.success(f"Período {MESES[month]} {year} guardado correctamente.")
 
 
@@ -624,12 +669,13 @@ with tab_co_carga:
         if co_salarios == 0:
             st.error("Los salarios brutos no pueden ser 0.")
         else:
-            save_period_co({
-                'año': year_co, 'mes': month_co,
-                'salarios_brutos': co_salarios,
-                'empleados': int(co_empleados),
-                'prepaga_total': co_prepaga,
-            })
+            with st.spinner("Guardando..."):
+                save_period_co({
+                    'año': year_co, 'mes': month_co,
+                    'salarios_brutos': co_salarios,
+                    'empleados': int(co_empleados),
+                    'prepaga_total': co_prepaga,
+                })
             st.success(f"Período {MESES[month_co]} {year_co} guardado correctamente.")
 
 

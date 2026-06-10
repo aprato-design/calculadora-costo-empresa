@@ -2,3 +2,4 @@ streamlit
 pdfplumber
 pandas
 openpyxl
+gspread==6.2.1
