@@ -2,4 +2,7 @@ __pycache__/
 *.pyc
 *.pdf
 *.png
+*.json
 diagnostico_osde.py
+SECRETS_TEMPLATE.toml
+migrar_a_sheets.py
