@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import streamlit as st
+import gspread
 from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
 from pathlib import Path
 
 # ─── Config ────────────────────────────────────────────────────────────────────
@@ -45,25 +45,22 @@ def _parse_month_num(date_str):
 
 # ─── Data loading ──────────────────────────────────────────────────────────────
 
-def _get_service():
-    scopes = ['https://www.googleapis.com/auth/spreadsheets.readonly']
+def _get_gc():
+    scopes = ['https://www.googleapis.com/auth/spreadsheets']
     try:
         info = dict(st.secrets['gcp_service_account'])
         creds = Credentials.from_service_account_info(info, scopes=scopes)
     except Exception:
         creds = Credentials.from_service_account_file(str(CREDS_FILE), scopes=scopes)
-    return build('sheets', 'v4', credentials=creds)
+    return gspread.authorize(creds)
 
 
 @st.cache_data(ttl=3600)
 def load_variables():
-    svc = _get_service()
-    resp = svc.spreadsheets().values().get(
-        spreadsheetId=SHEET_ID,
-        range=f"'{VARIABLES_TAB}'!A1:AZ30",
-        valueRenderOption='FORMATTED_VALUE',
-    ).execute()
-    rows = resp.get('values', [])
+    gc = _get_gc()
+    sh = gc.open_by_key(SHEET_ID)
+    ws = sh.worksheet(VARIABLES_TAB)
+    rows = ws.get('A1:AZ30', value_render_option='FORMATTED_VALUE')
     if len(rows) < 5:
         return None
 
