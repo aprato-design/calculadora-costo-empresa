@@ -7,7 +7,7 @@ from pathlib import Path
 # ─── Config ────────────────────────────────────────────────────────────────────
 SHEET_ID      = '1vBmF6PdU9ZCeB-6pqX5hxQ-FM0G3yWgd7MqtDfFlt78'
 VARIABLES_TAB = 'Variables para Rep'
-CREDS_FILE    = Path(__file__).parent.parent / 'talentserviceproject-1ce2ed91696b.json'
+CREDS_FILE    = Path(__file__).parent.parent.parent / 'talentserviceproject-1ce2ed91696b.json'
 
 FACTOR_MEXICO      = 1.3500
 FACTOR_PASANTE     = 1.1500
@@ -22,6 +22,167 @@ MONTH_NAMES = {
     5: 'Mayo',    6: 'Junio',      7: 'Julio',       8: 'Agosto',
     9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre',
 }
+
+
+# ─── Brand styles ──────────────────────────────────────────────────────────────
+
+def _inject_css():
+    st.markdown("""
+    <style>
+    /* ── Doppler palette ── */
+    :root {
+        --dp-green:       #33AD73;
+        --dp-green-dark:  #27945E;
+        --dp-green-light: #EAF7F1;
+        --dp-text:        #525845;
+        --dp-text-light:  #7A8070;
+        --dp-yellow:      #FFEEA7;
+        --dp-border:      #D8EDE5;
+    }
+
+    /* global text */
+    html, body, [class*="css"] { color: var(--dp-text); }
+
+    /* headings */
+    h1, h2, h3 { color: var(--dp-text) !important; font-weight: 700 !important; }
+
+    /* top header bar */
+    .dp-header {
+        background: linear-gradient(135deg, #33AD73 0%, #27945E 100%);
+        padding: 1.1rem 2rem;
+        margin-bottom: 1.5rem;
+        border-radius: 0 0 12px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .dp-logo {
+        font-size: 1.4rem;
+        font-weight: 900;
+        color: white;
+        letter-spacing: -0.03em;
+        text-transform: uppercase;
+    }
+    .dp-logo span { opacity: 0.7; font-weight: 400; font-size: 0.7rem;
+                    letter-spacing: 0.12em; margin-left: 0.6rem; vertical-align: middle; }
+    .dp-header-right { color: rgba(255,255,255,0.85); font-size: 0.85rem; }
+
+    /* period pill */
+    .dp-pill {
+        display: inline-block;
+        background: var(--dp-green-light);
+        border: 1px solid var(--dp-border);
+        border-radius: 999px;
+        padding: 0.35rem 1rem;
+        font-size: 0.8rem;
+        color: var(--dp-green-dark);
+        font-weight: 600;
+        margin-bottom: 1.2rem;
+    }
+
+    /* variables chips row */
+    .dp-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .dp-chip {
+        background: white;
+        border: 1px solid var(--dp-border);
+        border-radius: 8px;
+        padding: 0.4rem 0.75rem;
+        font-size: 0.78rem;
+        color: var(--dp-text);
+    }
+    .dp-chip b { color: var(--dp-green-dark); }
+
+    /* result card */
+    .dp-result {
+        background: linear-gradient(135deg, #EAF7F1 0%, #D4F0E3 100%);
+        border: 1.5px solid var(--dp-border);
+        border-left: 5px solid var(--dp-green);
+        border-radius: 12px;
+        padding: 1.5rem 2rem;
+        margin-top: 1rem;
+    }
+    .dp-result-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--dp-green-dark);
+        margin-bottom: 0.3rem;
+    }
+    .dp-result-value {
+        font-size: 2.6rem;
+        font-weight: 800;
+        color: var(--dp-green-dark);
+        line-height: 1;
+    }
+
+    /* selectbox & number input focus */
+    [data-testid="stSelectbox"] [data-baseweb="select"] > div:first-child:focus-within,
+    [data-testid="stNumberInput"] input:focus {
+        border-color: var(--dp-green) !important;
+        box-shadow: 0 0 0 2px rgba(51,173,115,0.2) !important;
+    }
+
+    /* expander */
+    [data-testid="stExpander"] {
+        border: 1px solid var(--dp-border) !important;
+        border-radius: 10px !important;
+        overflow: hidden;
+    }
+    [data-testid="stExpander"] summary {
+        color: var(--dp-green-dark) !important;
+        font-weight: 600 !important;
+    }
+    [data-testid="stExpander"] summary:hover { background: var(--dp-green-light) !important; }
+
+    /* warning */
+    [data-testid="stAlert"] {
+        background: var(--dp-yellow) !important;
+        border-left: 4px solid #D4A017 !important;
+        color: var(--dp-text) !important;
+    }
+
+    /* divider */
+    hr { border-color: var(--dp-border) !important; margin: 1.2rem 0 !important; }
+
+    /* hide Streamlit branding */
+    #MainMenu, footer { visibility: hidden; }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+def _header():
+    st.markdown("""
+    <div class="dp-header">
+        <div class="dp-logo">Doppler<span>Talent Care</span></div>
+        <div class="dp-header-right">Calculadora · Costo Mensual</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def _period_banner(vars_):
+    chips = []
+    chips.append(f'<div class="dp-chip">Período: <b>{vars_["mes"]}</b></div>')
+    if vars_['COSTO_ARG']:
+        chips.append(f'<div class="dp-chip">Factor AR: <b>{vars_["COSTO_ARG"]:.4f}</b></div>')
+    if vars_['COSTO_COL_MEN']:
+        chips.append(f'<div class="dp-chip">Factor CO: <b>{vars_["COSTO_COL_MEN"]:.4f}</b></div>')
+    if vars_['FX_ARS_OF']:
+        chips.append(f'<div class="dp-chip">FX ARS: <b>${vars_["FX_ARS_OF"]:,.0f}</b></div>')
+    if vars_['FX_COP']:
+        chips.append(f'<div class="dp-chip">FX COP: <b>${vars_["FX_COP"]:,.2f}</b></div>')
+    if vars_['FX_MX']:
+        chips.append(f'<div class="dp-chip">FX MXN: <b>${vars_["FX_MX"]:,.2f}</b></div>')
+    st.markdown('<div class="dp-chips">' + ''.join(chips) + '</div>', unsafe_allow_html=True)
+
+
+def _result_card(costo):
+    st.markdown(f"""
+    <div class="dp-result">
+        <div class="dp-result-label">Costo mensual</div>
+        <div class="dp-result-value">USD {costo:,.2f}</div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -64,8 +225,7 @@ def load_variables():
     if len(rows) < 5:
         return None
 
-    # Row 3 (index 2) contains the variable names
-    header = rows[2]
+    header = rows[2]  # row 3 (0-indexed: 2) — variable names
 
     def col_of(name):
         for j, h in enumerate(header):
@@ -81,7 +241,6 @@ def load_variables():
         'costo_col_men': col_of('Costo COL menor'),
     }
 
-    # Find latest data row: last row where FX ARS OF has a value (data from row 5, index 4)
     latest = None
     for row in rows[4:]:
         ars_idx = idx['fx_ars']
@@ -231,8 +390,9 @@ def main():
         page_icon='📊',
         layout='centered',
     )
-    st.title('Calculadora Costo Mensual')
-    st.caption('Doppler · Talent Care')
+
+    _inject_css()
+    _header()
 
     with st.spinner('Cargando variables...'):
         vars_ = load_variables()
@@ -241,19 +401,7 @@ def main():
         st.error('No se pudieron cargar las variables del sheet. Verificar credenciales.')
         st.stop()
 
-    # ── Period info banner ────────────────────────────────────────────────────
-    info_parts = [f"Datos de **{vars_['mes']}**"]
-    if vars_['COSTO_ARG']:
-        info_parts.append(f"Factor AR: **{vars_['COSTO_ARG']:.4f}**")
-    if vars_['COSTO_COL_MEN']:
-        info_parts.append(f"Factor CO: **{vars_['COSTO_COL_MEN']:.4f}**")
-    if vars_['FX_ARS_OF']:
-        info_parts.append(f"FX ARS: **\\${vars_['FX_ARS_OF']:,.0f}**")
-    if vars_['FX_COP']:
-        info_parts.append(f"FX COP: **\\${vars_['FX_COP']:,.2f}**")
-    if vars_['FX_MX']:
-        info_parts.append(f"FX MX: **\\${vars_['FX_MX']:,.2f}**")
-    st.info('  ·  '.join(info_parts))
+    _period_banner(vars_)
 
     st.divider()
 
@@ -316,12 +464,10 @@ def main():
     if has_input:
         costo = calcular_costo(agreement, location, salario, bill, fx_mx_manual, vars_)
 
-        st.divider()
-
         if costo is None:
             st.error('No se pudo calcular. Verificar que FX MX esté disponible.')
         else:
-            st.metric(label='Costo mensual', value=f'USD {costo:,.2f}')
+            _result_card(costo)
 
             with st.expander('Ver detalle del cálculo'):
                 _show_detail(agreement, location, salario, bill, fx_mx_manual, vars_, costo)
