@@ -149,6 +149,7 @@ def _get_gc():
 
 @st.cache_data(ttl=60)
 def load_accesos():
+    """Returns {email: [tablero1, tablero2, ...]}. One email can access multiple dashboards."""
     gc = _get_gc()
     rows = gc.open_by_key(MAIN_SHEET_ID).worksheet(ACCESOS_TAB).get_all_values()
     mapping = {}
@@ -157,7 +158,9 @@ def load_accesos():
             email = row[0].strip().lower()
             tablero = row[1].strip()
             if tablero in DASHBOARDS:
-                mapping[email] = tablero
+                mapping.setdefault(email, [])
+                if tablero not in mapping[email]:
+                    mapping[email].append(tablero)
     return mapping
 
 
@@ -378,8 +381,8 @@ def main():
     with st.spinner('Verificando acceso...'):
         accesos = load_accesos()
 
-    dashboard_key = accesos.get(user_email)
-    if not dashboard_key:
+    dashboard_keys = accesos.get(user_email, [])
+    if not dashboard_keys:
         st.error(
             f'El email **{user_email}** no tiene acceso a ningún tablero. '
             'Contactá a Talent Care para solicitar acceso.'
@@ -405,7 +408,15 @@ def main():
     with st.spinner('Cargando datos...'):
         all_data = load_main_data()
 
-    show_dashboard(dashboard_key, all_data, user_email)
+    if len(dashboard_keys) == 1:
+        show_dashboard(dashboard_keys[0], all_data, user_email)
+    else:
+        # Multiple dashboards: top-level tabs to select
+        tab_labels = [DASHBOARDS[k]['label'] for k in dashboard_keys]
+        dash_tabs = st.tabs(tab_labels)
+        for dash_tab, key in zip(dash_tabs, dashboard_keys):
+            with dash_tab:
+                show_dashboard(key, all_data, user_email)
 
 
 if __name__ == '__main__':
