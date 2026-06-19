@@ -317,14 +317,18 @@ def show_dashboard(dashboard_key, all_data, user_email):
 
             if changes:
                 person_lookup = {_safe(r, C_NOMBRE): r for r in month_rows}
-                with st.spinner('Guardando...'):
-                    for nombre, cmt in changes:
-                        pr = person_lookup.get(nombre)
-                        save_comentario(periodo, nombre, _safe(pr, C_DEPT) if pr else depts[0],
-                                        cmt, user_email)
-                load_comentarios.clear()
-                label = changes[0][0] if len(changes) == 1 else f'{len(changes)} colaboradores'
-                st.success(f'Comentario guardado — {label}')
+                try:
+                    with st.spinner('Guardando...'):
+                        for nombre, cmt in changes:
+                            pr = person_lookup.get(nombre)
+                            save_comentario(periodo, nombre,
+                                            _safe(pr, C_DEPT) if pr else depts[0],
+                                            cmt, user_email)
+                    load_comentarios.clear()
+                    label = changes[0][0] if len(changes) == 1 else f'{len(changes)} colaboradores'
+                    st.success(f'Comentario guardado — {label}')
+                except Exception as e:
+                    st.error(f'Error al guardar: {e}')
 
 
 # ─── Login screen ──────────────────────────────────────────────────────────────
