@@ -60,64 +60,66 @@ def _inject_css():
     st.markdown("""
     <style>
     :root {
-        --dp-green:       #33AD73;
-        --dp-green-dark:  #27945E;
-        --dp-green-light: #EAF7F1;
-        --dp-text:        #525845;
-        --dp-text-light:  #7A8070;
-        --dp-border:      #D8EDE5;
+        --dp-yellow:       #FFDD00;
+        --dp-yellow-dark:  #C8A500;
+        --dp-yellow-light: #FFFBDE;
+        --dp-text:         #525845;
+        --dp-text-light:   #7A8070;
+        --dp-border:       #F0E070;
+        --dp-text-on-yel:  #2C2500;
     }
     html, body, [class*="css"] { color: var(--dp-text); }
     h1, h2, h3 { color: var(--dp-text) !important; font-weight: 700 !important; }
 
     .dp-header {
-        background: linear-gradient(135deg, #33AD73 0%, #27945E 100%);
+        background: linear-gradient(135deg, #FFDD00 0%, #E5C000 100%);
         padding: 1.1rem 2rem;
         margin-bottom: 1.5rem;
         border-radius: 0 0 12px 12px;
         display: flex; align-items: center; justify-content: space-between;
     }
     .dp-logo {
-        font-size: 1.4rem; font-weight: 900; color: white;
+        font-size: 1.4rem; font-weight: 900; color: var(--dp-text-on-yel);
         letter-spacing: -0.03em; text-transform: uppercase;
     }
     .dp-logo span {
-        opacity: 0.7; font-weight: 400; font-size: 0.7rem;
+        opacity: 0.6; font-weight: 400; font-size: 0.7rem;
         letter-spacing: 0.12em; margin-left: 0.6rem; vertical-align: middle;
     }
-    .dp-header-right { color: rgba(255,255,255,0.85); font-size: 0.85rem; }
+    .dp-header-right { color: rgba(44,37,0,0.7); font-size: 0.85rem; }
 
     .dp-badge {
         display: inline-flex; align-items: center; gap: 0.4rem;
-        background: var(--dp-green-light); border: 1px solid var(--dp-border);
+        background: var(--dp-yellow-light); border: 1px solid var(--dp-border);
         border-radius: 999px; padding: 0.3rem 0.9rem;
-        font-size: 0.82rem; color: var(--dp-green-dark); font-weight: 600;
+        font-size: 0.82rem; color: var(--dp-yellow-dark); font-weight: 600;
     }
     .dp-badge-dot {
         width: 7px; height: 7px; border-radius: 50%;
-        background: var(--dp-green); display: inline-block; flex-shrink: 0;
+        background: var(--dp-yellow-dark); display: inline-block; flex-shrink: 0;
     }
 
     /* Data editor: highlight editable Comentarios column header */
     [data-testid="stDataEditor"] th:last-child {
-        background: #EAF7F1 !important;
-        color: var(--dp-green-dark) !important;
+        background: #FFFBDE !important;
+        color: var(--dp-yellow-dark) !important;
     }
 
     [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
-        color: var(--dp-green-dark) !important;
-        border-bottom-color: var(--dp-green) !important;
+        color: var(--dp-yellow-dark) !important;
+        border-bottom-color: var(--dp-yellow) !important;
         font-weight: 600 !important;
     }
     [data-testid="stTabs"] [role="tab"] { color: var(--dp-text-light) !important; }
 
     [data-testid="stButton"] > button {
-        background-color: var(--dp-green) !important;
-        color: white !important; border: none !important;
+        background-color: var(--dp-yellow) !important;
+        color: var(--dp-text-on-yel) !important; border: none !important;
         border-radius: 8px !important; font-weight: 600 !important;
     }
     [data-testid="stButton"] > button:hover {
-        background-color: var(--dp-green-dark) !important;
+        background-color: var(--dp-yellow-dark) !important;
+        color: white !important;
     }
 
     hr { border-color: var(--dp-border) !important; margin: 1rem 0 !important; }
@@ -338,8 +340,8 @@ def show_login():
     with col:
         st.markdown('<br>', unsafe_allow_html=True)
         st.markdown("""
-        <div style="background:white;border:1px solid #D8EDE5;border-radius:16px;
-                    padding:2rem 2.2rem;box-shadow:0 4px 24px rgba(51,173,115,0.08);">
+        <div style="background:white;border:1px solid #F0E070;border-radius:16px;
+                    padding:2rem 2.2rem;box-shadow:0 4px 24px rgba(255,221,0,0.12);">
             <div style="font-size:1.15rem;font-weight:700;color:#525845;margin-bottom:0.35rem;">
                 Acceso al Tablero
             </div>
