@@ -106,11 +106,14 @@ def _inject_css():
     }
 
     [data-testid="stTabs"] [role="tab"][aria-selected="true"] {
-        color: var(--dp-yellow-dark) !important;
-        border-bottom-color: var(--dp-yellow) !important;
+        color: #27945E !important;
         font-weight: 600 !important;
     }
     [data-testid="stTabs"] [role="tab"] { color: var(--dp-text-light) !important; }
+
+    /* Línea activa debajo del tab seleccionado */
+    [data-baseweb="tab-highlight"] { background-color: #33AD73 !important; }
+    [data-baseweb="tab-border"]    { background-color: #E0E0E0 !important; }
 
     [data-testid="stButton"] > button {
         background-color: var(--dp-yellow) !important;
