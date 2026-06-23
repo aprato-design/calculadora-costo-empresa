@@ -219,6 +219,26 @@ def _parse_month(date_str):
         return None
 
 
+def _gap_dot(val):
+    """Prefix a colored circle to the GAP Banda value based on its magnitude."""
+    s = str(val).strip()
+    if not s:
+        return s
+    if s.lower() in ('ok', 'bien', 'dentro', 'en banda'):
+        return f'🟢 {s}'
+    try:
+        pct = abs(float(s.replace('%', '').replace(',', '.').strip()))
+        if pct <= 5:
+            dot = '🟢'   # light green zone
+        elif pct <= 15:
+            dot = '🟡'   # warning zone
+        else:
+            dot = '🔴'   # critical zone
+        return f'{dot} {s}'
+    except (ValueError, TypeError):
+        return s
+
+
 # ─── Dashboard ─────────────────────────────────────────────────────────────────
 
 def show_dashboard(dashboard_key, all_data, user_email):
@@ -279,7 +299,7 @@ def show_dashboard(dashboard_key, all_data, user_email):
                     'Payroll':    _safe(r, C_PAYROLL),
                     'Banda Min':  _safe(r, C_BANDA_MIN),
                     'Banda Max':  _safe(r, C_BANDA_MAX),
-                    'GAP Banda':  _safe(r, C_GAP_BANDA),
+                    'GAP Banda':  _gap_dot(_safe(r, C_GAP_BANDA)),
                     'CE':         _safe(r, C_CE),
                     'Comentarios': comentarios.get((periodo, nombre), ''),
                 })
